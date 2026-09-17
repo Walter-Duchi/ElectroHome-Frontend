@@ -1,119 +1,63 @@
 import type React from 'react';
 import { useState } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Stepper,
-  Step,
-  StepLabel,
-  Alert,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  type SelectChangeEvent,
-  Tabs,
-  Tab,
-  Snackbar,
+  Box, Paper, Typography, TextField, Button, Stepper, Step, StepLabel, Alert,
+  CircularProgress, Grid, Card, CardContent, IconButton, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow, Chip, Dialog, DialogTitle,
+  DialogContent, DialogContentText, DialogActions, MenuItem, FormControl,
+  InputLabel, Select, type SelectChangeEvent, Tabs, Tab, Snackbar, Stack,
 } from '@mui/material';
 import {
-  Delete as DeleteIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Add as AddIcon,
-  Print as PrintIcon,
-  Person as PersonIcon,
-  List as ListIcon,
+  Delete as DeleteIcon, CheckCircle as CheckCircleIcon, Error as ErrorIcon,
+  Add as AddIcon, Print as PrintIcon, Person as PersonIcon, List as ListIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { reclamoService } from '../../services/reclamoService';
 import type { ProductoReclamado, ValidarClienteResponse, ProductoCompradoDTO } from '../../src/types/reclamo';
+import { useResponsive } from '../../src/hooks/useResponsive';
 
 interface ClienteValidadoType {
-  esValido: boolean;
-  mensaje?: string;
-  clienteId?: number;
-  razonSocial?: string;
+  esValido: boolean; mensaje?: string; clienteId?: number; razonSocial?: string;
 }
 
 const CrearReclamo = () => {
   const navigate = useNavigate();
+  const { esMovil } = useResponsive();
   const [activeStep, setActiveStep] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
 
   const [identificadorCliente, setIdentificadorCliente] = useState<string>('');
   const [clienteValidado, setClienteValidado] = useState<ClienteValidadoType | null>(null);
-
   const [tabValue, setTabValue] = useState(0);
   const [numeroSerie, setNumeroSerie] = useState<string>('');
   const [productos, setProductos] = useState<ProductoReclamado[]>([]);
   const [formaCompensacion, setFormaCompensacion] = useState<'Reembolso' | 'Reemplazo'>('Reembolso');
   const [productosComprados, setProductosComprados] = useState<ProductoCompradoDTO[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
-
   const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
 
   const steps = ['Validar Cliente', 'Agregar Productos', 'Confirmar Reclamo'];
 
+  const mostrarError = (msg: string) => {
+    setSnackbarMessage(msg); setSnackbarSeverity('error'); setSnackbarOpen(true);
+  };
+
   const handleValidarCliente = async (): Promise<void> => {
-    if (!identificadorCliente.trim()) {
-      setSnackbarMessage('Por favor ingrese cédula, RUC o pasaporte del cliente');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
+    if (!identificadorCliente.trim()) return mostrarError('Ingrese cédula, RUC o pasaporte');
     setLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
     try {
       const response: ValidarClienteResponse = await reclamoService.validarCliente({ identificador: identificadorCliente });
-
       if (response.esValido) {
         setClienteValidado(response);
         setActiveStep(1);
-        setSnackbarMessage('Cliente validado correctamente');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        setSnackbarMessage('Cliente validado'); setSnackbarSeverity('success'); setSnackbarOpen(true);
         cargarProductosComprados();
-      } else {
-        setSnackbarMessage(response.mensaje || 'Error al validar cliente');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-      }
-    } catch (err: unknown) {
-      setSnackbarMessage('Error al validar cliente');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setLoading(false);
-    }
+      } else { mostrarError(response.mensaje || 'Error al validar cliente'); }
+    } catch { mostrarError('Error al validar cliente'); }
+    finally { setLoading(false); }
   };
 
   const cargarProductosComprados = async () => {
@@ -122,308 +66,138 @@ const CrearReclamo = () => {
     try {
       const data = await reclamoService.obtenerProductosComprados(identificadorCliente);
       setProductosComprados(data);
-    } catch (error) {
-      console.error('Error cargando historial:', error);
-    } finally {
-      setCargandoHistorial(false);
-    }
+    } catch (error) { console.error(error); }
+    finally { setCargandoHistorial(false); }
   };
 
   const handleAgregarProducto = async (): Promise<void> => {
-    if (!numeroSerie.trim()) {
-      setSnackbarMessage('Por favor ingrese un número de serie');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
-    if (productos.some(p => p.numeroSerie === numeroSerie)) {
-      setSnackbarMessage('Este producto ya ha sido agregado');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
+    if (!numeroSerie.trim()) return mostrarError('Ingrese número de serie');
+    if (productos.some(p => p.numeroSerie === numeroSerie)) return mostrarError('Ya agregado');
     setLoading(true);
-    setErrorMessage('');
-
     const productoId = `producto-${Date.now()}`;
-    setProductos(prev => [...prev, {
-      id: productoId,
-      numeroSerie,
-      formaCompensacion,
-      tieneGarantia: false,
-      validando: true
-    }]);
-
+    setProductos(prev => [...prev, { id: productoId, numeroSerie, formaCompensacion, tieneGarantia: false, validando: true }]);
     try {
       const response = await reclamoService.validarProducto({ numeroSerie });
-
-      setProductos(prev => prev.map(p =>
-        p.id === productoId ? {
-          ...p,
-          validando: false,
-          esValido: response.esValido,
-          tieneGarantia: response.tieneGarantia,
-          marca: response.marca,
-          modelo: response.modelo,
-          estadoInventario: response.estadoInventario,
-          especificacion: response.especificacion,
-          precio: response.precio,
-          error: response.mensaje
-        } : p
-      ));
-
+      setProductos(prev => prev.map(p => p.id === productoId ? {
+        ...p, validando: false, esValido: response.esValido, tieneGarantia: response.tieneGarantia,
+        marca: response.marca, modelo: response.modelo, estadoInventario: response.estadoInventario,
+        especificacion: response.especificacion, precio: response.precio, error: response.mensaje,
+      } : p));
       if (!response.esValido || !response.tieneGarantia) {
-        setSnackbarMessage(response.mensaje || 'Producto no válido');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        mostrarError(response.mensaje || 'Producto no válido');
         setProductos(prev => prev.filter(p => p.id !== productoId));
-      } else {
-        setNumeroSerie('');
-        setFormaCompensacion('Reembolso');
-      }
-    } catch (err: unknown) {
-      setSnackbarMessage('Error al validar producto');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      setProductos(prev => prev.map(p =>
-        p.id === productoId ? {
-          ...p,
-          validando: false,
-          error: 'Error al validar producto'
-        } : p
-      ));
-    } finally {
-      setLoading(false);
-    }
+      } else { setNumeroSerie(''); setFormaCompensacion('Reembolso'); }
+    } catch {
+      mostrarError('Error al validar producto');
+      setProductos(prev => prev.map(p => p.id === productoId ? { ...p, validando: false, error: 'Error' } : p));
+    } finally { setLoading(false); }
   };
 
   const handleAgregarDesdeHistorial = (producto: ProductoCompradoDTO) => {
-    if (productos.some(p => p.numeroSerie === producto.numeroSerie)) {
-      setSnackbarMessage('Este producto ya ha sido agregado');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
-    const productoId = `producto-${Date.now()}`;
-    const nuevoProducto: ProductoReclamado = {
-      id: productoId,
-      numeroSerie: producto.numeroSerie,
-      marca: producto.marca,
-      modelo: producto.modelo,
-      tieneGarantia: producto.tieneGarantia,
-      formaCompensacion: formaCompensacion,
-      especificacion: `${producto.marca} ${producto.modelo}`,
-      precio: producto.precio,
-      validando: false,
-    };
-
-    if (!producto.tieneGarantia) {
-      setSnackbarMessage('Este producto no tiene garantía válida');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
-    setProductos(prev => [...prev, nuevoProducto]);
+    if (productos.some(p => p.numeroSerie === producto.numeroSerie)) return mostrarError('Ya agregado');
+    if (!producto.tieneGarantia) return mostrarError('Este producto no tiene garantía válida');
+    setProductos(prev => [...prev, {
+      id: `producto-${Date.now()}`, numeroSerie: producto.numeroSerie,
+      marca: producto.marca, modelo: producto.modelo, tieneGarantia: producto.tieneGarantia,
+      formaCompensacion, especificacion: `${producto.marca} ${producto.modelo}`,
+      precio: producto.precio, validando: false,
+    }]);
   };
 
-  const handleEliminarProducto = (id: string): void => {
-    setProductos(prev => prev.filter(p => p.id !== id));
-  };
+  const handleEliminarProducto = (id: string) => setProductos(prev => prev.filter(p => p.id !== id));
 
   const handleConfirmarReclamo = async (): Promise<void> => {
-    setConfirmDialogOpen(false);
-    setLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
+    setConfirmDialogOpen(false); setLoading(true);
     const productosValidos = productos.filter(p => p.tieneGarantia);
-
     if (productosValidos.length === 0) {
-      setSnackbarMessage('Debe agregar al menos un producto válido con garantía');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      setLoading(false);
-      return;
+      mostrarError('Debe agregar al menos un producto válido'); setLoading(false); return;
     }
-
     try {
-      const productosParaEnviar = productosValidos.map(p => ({
-        numeroSerie: p.numeroSerie.trim(),
-        formaCompensacion: p.formaCompensacion
-      }));
-
-      const request = {
+      const response = await reclamoService.crearReclamo({
         identificadorCliente: identificadorCliente.trim(),
-        productos: productosParaEnviar
-      };
-
-      const response = await reclamoService.crearReclamo(request);
-
+        productos: productosValidos.map(p => ({ numeroSerie: p.numeroSerie.trim(), formaCompensacion: p.formaCompensacion })),
+      });
       if (response.exito) {
-        setSnackbarMessage('¡Reclamo creado exitosamente! Todos los productos tienen técnicos asignados.');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-
+        setSnackbarMessage('¡Reclamo creado exitosamente!'); setSnackbarSeverity('success'); setSnackbarOpen(true);
         if (response.pdfBase64 && response.pdfFileName) {
           setTimeout(() => {
             reclamoService.descargarPdf(response.pdfBase64!, response.pdfFileName!);
-            setTimeout(() => {
-              setSnackbarMessage('¡Reclamo creado exitosamente! PDF descargado en Documentos/reclamos');
-              setSnackbarSeverity('success');
-              setSnackbarOpen(true);
-              setTimeout(() => {
-                navigate('/');
-              }, 3000);
-            }, 1000);
-          }, 1000);
-        } else {
-          setTimeout(() => {
-            navigate('/');
-          }, 2000);
-        }
-      } else {
-        setSnackbarMessage(response.mensaje || 'Error al crear el reclamo');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-      }
+            setTimeout(() => navigate('/'), 3000);
+          }, 800);
+        } else { setTimeout(() => navigate('/'), 1500); }
+      } else { mostrarError(response.mensaje || 'Error al crear el reclamo'); }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setSnackbarMessage(`Error: ${err.message}`);
-      } else {
-        setSnackbarMessage('Error desconocido al crear el reclamo');
-      }
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleIdentificadorChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setIdentificadorCliente(e.target.value);
-  };
-
-  const handleNumeroSerieChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setNumeroSerie(e.target.value);
-  };
-
-  const handleFormaCompensacionChange = (e: SelectChangeEvent<'Reembolso' | 'Reemplazo'>): void => {
-    setFormaCompensacion(e.target.value as 'Reembolso' | 'Reemplazo');
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
+      mostrarError(err instanceof Error ? `Error: ${err.message}` : 'Error desconocido');
+    } finally { setLoading(false); }
   };
 
   const getStepContent = (step: number) => {
     const productosValidos = productos.filter(p => p.tieneGarantia);
-
     switch (step) {
       case 0:
         return (
-          <Box sx={{ maxWidth: 500, mx: 'auto' }}>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Validar Cliente
-            </Typography>
-
-            <TextField
-              label="Cédula / RUC / Pasaporte"
-              value={identificadorCliente}
-              onChange={handleIdentificadorChange}
-              fullWidth
-              margin="normal"
-              placeholder="Ingrese la identificación del cliente"
-              disabled={loading}
-            />
-
+          <Box sx={{ maxWidth: { xs: '100%', sm: 500 }, mx: 'auto' }}>
+            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>Validar Cliente</Typography>
+            <TextField label="Cédula / RUC / Pasaporte" value={identificadorCliente}
+              onChange={(e) => setIdentificadorCliente(e.target.value)}
+              fullWidth margin="normal" placeholder="Ingrese identificación"
+              disabled={loading} />
             {clienteValidado && (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                Cliente validado: {clienteValidado.razonSocial}
-              </Alert>
+              <Alert severity="success" sx={{ mt: 2 }}>Cliente: {clienteValidado.razonSocial}</Alert>
             )}
-
-            <Button
-              variant="contained"
-              onClick={handleValidarCliente}
+            <Button variant="contained" onClick={handleValidarCliente}
               disabled={loading || !identificadorCliente.trim()}
-              sx={{ mt: 3 }}
-              startIcon={<PersonIcon />}
-            >
+              sx={{ mt: 3 }} startIcon={<PersonIcon />}>
               {loading ? <CircularProgress size={24} /> : 'Validar Cliente'}
             </Button>
           </Box>
         );
-
       case 1:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Agregar Productos
-            </Typography>
-
-            <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 2 }}>
-              <Tab label="Escribir Número de Serie" />
+            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>Agregar Productos</Typography>
+            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 2 }}
+              variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
+              <Tab label="Escribir N° Serie" />
               <Tab label="Seleccionar del Historial" />
             </Tabs>
-
             {tabValue === 0 && (
-              <>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      label="Número de Serie"
-                      value={numeroSerie}
-                      onChange={handleNumeroSerieChange}
-                      fullWidth
-                      placeholder="Ingrese el número de serie del producto"
-                      disabled={loading}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Forma de Compensación</InputLabel>
-                      <Select
-                        value={formaCompensacion}
-                        onChange={handleFormaCompensacionChange}
-                        label="Forma de Compensación"
-                      >
-                        <MenuItem value="Reembolso">Reembolso</MenuItem>
-                        <MenuItem value="Reemplazo">Reemplazo</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 2 }}>
-                    <Button
-                      variant="contained"
-                      onClick={handleAgregarProducto}
-                      disabled={loading || !numeroSerie.trim()}
-                      fullWidth
-                      sx={{ height: '56px' }}
-                      startIcon={<AddIcon />}
-                    >
-                      Agregar
-                    </Button>
-                  </Grid>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Número de Serie" value={numeroSerie}
+                    onChange={(e) => setNumeroSerie(e.target.value)}
+                    fullWidth placeholder="Ingrese el número de serie" disabled={loading} />
                 </Grid>
-              </>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Forma de Compensación</InputLabel>
+                    <Select value={formaCompensacion}
+                      onChange={(e: SelectChangeEvent) => setFormaCompensacion(e.target.value as 'Reembolso' | 'Reemplazo')}
+                      label="Forma de Compensación">
+                      <MenuItem value="Reembolso">Reembolso</MenuItem>
+                      <MenuItem value="Reemplazo">Reemplazo</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 2 }}>
+                  <Button variant="contained" onClick={handleAgregarProducto}
+                    disabled={loading || !numeroSerie.trim()} fullWidth
+                    sx={{ height: { xs: 'auto', sm: '56px' } }} startIcon={<AddIcon />}>
+                    Agregar
+                  </Button>
+                </Grid>
+              </Grid>
             )}
-
             {tabValue === 1 && (
               <Box sx={{ mb: 3 }}>
-                {cargandoHistorial ? (
-                  <CircularProgress />
-                ) : (
-                  <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                    <Table stickyHeader size="small">
+                {cargandoHistorial ? <CircularProgress /> : (
+                  <TableContainer component={Paper} sx={{ maxHeight: 320, overflowX: 'auto' }}>
+                    <Table stickyHeader size="small" sx={{ minWidth: 620 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell>N° Serie</TableCell>
                           <TableCell>Producto</TableCell>
-                          <TableCell>Fecha Compra</TableCell>
+                          <TableCell>Fecha</TableCell>
                           <TableCell>Garantía</TableCell>
                           <TableCell>Acción</TableCell>
                         </TableRow>
@@ -435,19 +209,13 @@ const CrearReclamo = () => {
                             <TableCell>{prod.marca} {prod.modelo}</TableCell>
                             <TableCell>{prod.fechaCompra ? new Date(prod.fechaCompra).toLocaleDateString('es-EC') : '-'}</TableCell>
                             <TableCell>
-                              <Chip
-                                label={prod.tieneGarantia ? 'Válida' : 'Vencida'}
-                                color={prod.tieneGarantia ? 'success' : 'error'}
-                                size="small"
-                              />
+                              <Chip label={prod.tieneGarantia ? 'Válida' : 'Vencida'}
+                                color={prod.tieneGarantia ? 'success' : 'error'} size="small" />
                             </TableCell>
                             <TableCell>
-                              <Button
-                                size="small"
-                                variant="outlined"
+                              <Button size="small" variant="outlined"
                                 onClick={() => handleAgregarDesdeHistorial(prod)}
-                                disabled={!prod.tieneGarantia || productos.some(p => p.numeroSerie === prod.numeroSerie)}
-                              >
+                                disabled={!prod.tieneGarantia || productos.some(p => p.numeroSerie === prod.numeroSerie)}>
                                 Agregar
                               </Button>
                             </TableCell>
@@ -459,16 +227,14 @@ const CrearReclamo = () => {
                 )}
               </Box>
             )}
-
             {productos.length > 0 && (
               <Card sx={{ mt: 3 }}>
                 <CardContent>
                   <Typography variant="subtitle1" gutterBottom>
-                    Productos Agregados ({productos.filter(p => p.tieneGarantia).length} válidos)
+                    Productos Agregados ({productosValidos.length} válidos)
                   </Typography>
-
-                  <TableContainer>
-                    <Table size="small">
+                  <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table size="small" sx={{ minWidth: 600 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell>N° Serie</TableCell>
@@ -479,50 +245,21 @@ const CrearReclamo = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {productos.map((producto) => (
-                          <TableRow key={producto.id}>
-                            <TableCell>{producto.numeroSerie}</TableCell>
+                        {productos.map((p) => (
+                          <TableRow key={p.id}>
+                            <TableCell>{p.numeroSerie}</TableCell>
                             <TableCell>
-                              {producto.marca && producto.modelo ? (
-                                `${producto.marca} ${producto.modelo}`
-                              ) : producto.validando ? (
-                                <CircularProgress size={20} />
-                              ) : (
-                                'No válido'
-                              )}
+                              {p.marca && p.modelo ? `${p.marca} ${p.modelo}`
+                                : p.validando ? <CircularProgress size={20} /> : 'No válido'}
                             </TableCell>
                             <TableCell>
-                              {producto.validando ? (
-                                <Chip label="Validando..." size="small" />
-                              ) : producto.tieneGarantia ? (
-                                <Chip
-                                  label="Con Garantía"
-                                  color="success"
-                                  size="small"
-                                  icon={<CheckCircleIcon />}
-                                />
-                              ) : (
-                                <Chip
-                                  label="Sin Garantía"
-                                  color="error"
-                                  size="small"
-                                  icon={<ErrorIcon />}
-                                />
-                              )}
+                              {p.validando ? <Chip label="Validando..." size="small" />
+                                : p.tieneGarantia ? <Chip label="Con Garantía" color="success" size="small" icon={<CheckCircleIcon />} />
+                                : <Chip label="Sin Garantía" color="error" size="small" icon={<ErrorIcon />} />}
                             </TableCell>
+                            <TableCell><Chip label={p.formaCompensacion} variant="outlined" size="small" /></TableCell>
                             <TableCell>
-                              <Chip
-                                label={producto.formaCompensacion}
-                                variant="outlined"
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEliminarProducto(producto.id)}
-                                color="error"
-                              >
+                              <IconButton size="small" onClick={() => handleEliminarProducto(p.id)} color="error">
                                 <DeleteIcon />
                               </IconButton>
                             </TableCell>
@@ -531,78 +268,43 @@ const CrearReclamo = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
-
-                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Total productos: {productos.length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Productos con garantía: {productos.filter(p => p.tieneGarantia).length}
-                    </Typography>
-                  </Box>
                 </CardContent>
               </Card>
             )}
-
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-              <Button
-                variant="outlined"
-                onClick={() => setActiveStep(0)}
-              >
-                Atrás
-              </Button>
-              <Button
-                variant="contained"
-                onClick={() => setActiveStep(2)}
-                disabled={productos.filter(p => p.tieneGarantia).length === 0}
-                startIcon={<ListIcon />}
-              >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}
+              sx={{ mt: 3, justifyContent: 'space-between' }}>
+              <Button variant="outlined" onClick={() => setActiveStep(0)} fullWidth={esMovil}>Atrás</Button>
+              <Button variant="contained" onClick={() => setActiveStep(2)}
+                disabled={productosValidos.length === 0} startIcon={<ListIcon />} fullWidth={esMovil}>
                 Continuar
               </Button>
-            </Box>
+            </Stack>
           </Box>
         );
-
       case 2:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Confirmar Reclamo
-            </Typography>
-
+            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>Confirmar Reclamo</Typography>
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="subtitle1" gutterBottom>
-                  Información del Cliente
-                </Typography>
+                <Typography variant="subtitle1" gutterBottom>Información del Cliente</Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Identificación
-                    </Typography>
-                    <Typography variant="body1">
-                      {identificadorCliente}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Identificación</Typography>
+                    <Typography variant="body1">{identificadorCliente}</Typography>
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Nombre
-                    </Typography>
-                    <Typography variant="body1">
-                      {clienteValidado?.razonSocial || 'No validado'}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Nombre</Typography>
+                    <Typography variant="body1">{clienteValidado?.razonSocial || 'No validado'}</Typography>
                   </Grid>
                 </Grid>
               </CardContent>
             </Card>
-
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="subtitle1" gutterBottom>
-                  Productos a Reclamar
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
+                <Typography variant="subtitle1" gutterBottom>Productos a Reclamar</Typography>
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size="small" sx={{ minWidth: 500 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>N° Serie</TableCell>
@@ -612,140 +314,67 @@ const CrearReclamo = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {productosValidos.map((producto) => (
-                        <TableRow key={producto.id}>
-                          <TableCell>{producto.numeroSerie}</TableCell>
-                          <TableCell>
-                            {producto.marca} {producto.modelo}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={producto.formaCompensacion}
-                              variant="outlined"
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            ${producto.precio?.toFixed(2) || '0.00'}
-                          </TableCell>
+                      {productosValidos.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{p.numeroSerie}</TableCell>
+                          <TableCell>{p.marca} {p.modelo}</TableCell>
+                          <TableCell><Chip label={p.formaCompensacion} variant="outlined" size="small" /></TableCell>
+                          <TableCell>${p.precio?.toFixed(2) || '0.00'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-
                 <Box sx={{ mt: 2, textAlign: 'right' }}>
-                  <Typography variant="h6">
-                    Total Productos: {productosValidos.length}
-                  </Typography>
+                  <Typography variant="h6">Total: {productosValidos.length}</Typography>
                 </Box>
               </CardContent>
             </Card>
-
             <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Verificación de Asignación de Técnicos
-              </Typography>
+              <Typography variant="subtitle2" gutterBottom>Verificación de Técnicos</Typography>
               <Typography variant="body2">
-                1. El sistema verificará que existan técnicos certificados para cada marca de producto.<br />
-                2. Se asignará un técnico específico a cada producto según su marca.<br />
-                3. La carga de trabajo se distribuirá equitativamente entre técnicos certificados.<br />
-                4. Si algún producto no puede tener técnico asignado, el reclamo NO se creará.<br />
-                5. Se generará un PDF con todos los detalles y se guardará en Documentos/reclamos.
+                El sistema asignará un técnico certificado por cada marca y generará un PDF.
               </Typography>
             </Alert>
-
-            <Alert severity="warning" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                <strong>Importante:</strong> Este proceso garantiza que cada producto sea revisado por un técnico
-                certificado en la marca correspondiente. Si falla la asignación de algún técnico,
-                todo el reclamo será cancelado automáticamente.
-              </Typography>
-            </Alert>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button
-                variant="outlined"
-                onClick={() => setActiveStep(1)}
-              >
-                Atrás
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setConfirmDialogOpen(true)}
-                disabled={loading || productosValidos.length === 0}
-                startIcon={<PrintIcon />}
-              >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
+              <Button variant="outlined" onClick={() => setActiveStep(1)} fullWidth={esMovil}>Atrás</Button>
+              <Button variant="contained" onClick={() => setConfirmDialogOpen(true)}
+                disabled={loading || productosValidos.length === 0} startIcon={<PrintIcon />} fullWidth={esMovil}>
                 {loading ? <CircularProgress size={24} /> : 'Crear Reclamo'}
               </Button>
-            </Box>
+            </Stack>
           </Box>
         );
-
-      default:
-        return <></>;
+      default: return null;
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 4, fontWeight: 600 }}>
-          Crear Nuevo Reclamo
-        </Typography>
-
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
+    <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 2, md: 3 } }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 4, fontWeight: 600 }}>Crear Nuevo Reclamo</Typography>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }} alternativeLabel={esMovil}>
+          {steps.map((label) => (<Step key={label}><StepLabel>{label}</StepLabel></Step>))}
         </Stepper>
-
         {getStepContent(activeStep)}
       </Paper>
 
-      <Dialog
-        open={confirmDialogOpen}
-        onClose={() => setConfirmDialogOpen(false)}
-      >
+      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} fullScreen={esMovil}>
         <DialogTitle>Confirmar Creación de Reclamo</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            <strong>Verificación de Asignación de Técnicos:</strong><br /><br />
-
-            ¿Está seguro de crear el reclamo? El sistema realizará las siguientes verificaciones:<br /><br />
-
-            1. Validará que existan técnicos certificados para cada marca de producto.<br />
-            2. Asignará un técnico específico a cada producto (distribución equitativa).<br />
-            3. Si algún producto no puede tener técnico asignado, el reclamo NO se creará.<br />
-            4. Generará un PDF real (no HTML) con todos los detalles.<br />
-            5. El PDF se guardará en Documentos/reclamos/<br /><br />
-
-            <strong>¿Desea continuar?</strong>
+            ¿Está seguro de crear el reclamo? El sistema asignará un técnico a cada producto.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialogOpen(false)}>Cancelar</Button>
-          <Button
-            onClick={handleConfirmarReclamo}
-            variant="contained"
-            color="primary"
-            autoFocus
-          >
-            Sí, crear reclamo
-          </Button>
+          <Button onClick={handleConfirmarReclamo} variant="contained" autoFocus>Sí, crear reclamo</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={7000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+      <Snackbar open={snackbarOpen} autoHideDuration={7000} onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

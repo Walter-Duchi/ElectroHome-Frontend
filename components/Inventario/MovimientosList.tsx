@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, MenuItem, Box, Typography, Chip, FormControl, InputLabel, Select
+  Paper, TextField, MenuItem, Box, Typography, Chip, FormControl, InputLabel, Select,
 } from '@mui/material';
 import { inventarioService } from '../../services/inventarioService';
 import type { MovimientoInventario } from '../../src/types/inventario';
 import type { ProductoManagement } from '../../src/types/producto';
 
-interface MovimientosListProps {
-  productos: ProductoManagement[];
-}
+interface MovimientosListProps { productos: ProductoManagement[]; }
 
 const MovimientosList: React.FC<MovimientosListProps> = ({ productos }) => {
   const [movimientos, setMovimientos] = useState<MovimientoInventario[]>([]);
@@ -17,21 +15,14 @@ const MovimientosList: React.FC<MovimientosListProps> = ({ productos }) => {
   const [filtroDesde, setFiltroDesde] = useState('');
   const [filtroHasta, setFiltroHasta] = useState('');
 
-  useEffect(() => {
-    cargarMovimientos();
-  }, [filtroProducto, filtroDesde, filtroHasta]);
+  useEffect(() => { cargarMovimientos(); }, [filtroProducto, filtroDesde, filtroHasta]);
 
   const cargarMovimientos = async () => {
     try {
-      const data = await inventarioService.getMovimientos(
-        filtroProducto || undefined,
-        filtroDesde || undefined,
-        filtroHasta || undefined
-      );
-      setMovimientos(data);
-    } catch (error) {
-      console.error(error);
-    }
+      setMovimientos(await inventarioService.getMovimientos(
+        filtroProducto || undefined, filtroDesde || undefined, filtroHasta || undefined,
+      ));
+    } catch (error) { console.error(error); }
   };
 
   const getTipoColor = (tipo: string) => {
@@ -45,43 +36,22 @@ const MovimientosList: React.FC<MovimientosListProps> = ({ productos }) => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <FormControl sx={{ minWidth: 200 }}>
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
+        <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
           <InputLabel>Producto</InputLabel>
-          <Select
-            value={filtroProducto}
-            label="Producto"
-            onChange={(e) => setFiltroProducto(e.target.value as number | '')}
-          >
+          <Select value={filtroProducto} label="Producto" onChange={(e) => setFiltroProducto(e.target.value as number | '')}>
             <MenuItem value="">Todos</MenuItem>
-            {productos.map(p => (
-              <MenuItem key={p.id} value={p.id}>{p.nombreCompleto}</MenuItem>
-            ))}
+            {productos.map(p => (<MenuItem key={p.id} value={p.id}>{p.nombreCompleto}</MenuItem>))}
           </Select>
         </FormControl>
-        <TextField
-          label="Desde"
-          type="date"
-          value={filtroDesde}
-          onChange={(e) => setFiltroDesde(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          onKeyDown={(e) => e.preventDefault()}
-          onPaste={(e) => e.preventDefault()}
-        />
-        <TextField
-          label="Hasta"
-          type="date"
-          value={filtroHasta}
-          onChange={(e) => setFiltroHasta(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          onKeyDown={(e) => e.preventDefault()}
-          onPaste={(e) => e.preventDefault()}
-        />
+        <TextField label="Desde" type="date" value={filtroDesde} onChange={(e) => setFiltroDesde(e.target.value)}
+          InputLabelProps={{ shrink: true }} sx={{ minWidth: { xs: '100%', sm: 160 } }} />
+        <TextField label="Hasta" type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)}
+          InputLabelProps={{ shrink: true }} sx={{ minWidth: { xs: '100%', sm: 160 } }} />
       </Box>
-
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%' }}>
+        <Table sx={{ minWidth: 900 }}>
           <TableHead>
             <TableRow>
               <TableCell>Fecha</TableCell>
@@ -90,17 +60,13 @@ const MovimientosList: React.FC<MovimientosListProps> = ({ productos }) => {
               <TableCell align="right">Cantidad</TableCell>
               <TableCell align="right">Anterior</TableCell>
               <TableCell align="right">Nueva</TableCell>
-              <TableCell>Motivo/Referencia</TableCell>
+              <TableCell>Motivo/Ref.</TableCell>
               <TableCell>Usuario</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {movimientos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  <Typography sx={{ py: 2 }}>No hay movimientos</Typography>
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={8} align="center"><Typography sx={{ py: 2 }}>No hay movimientos</Typography></TableCell></TableRow>
             ) : (
               movimientos.map(m => (
                 <TableRow key={m.id}>
@@ -109,9 +75,7 @@ const MovimientosList: React.FC<MovimientosListProps> = ({ productos }) => {
                     <Typography variant="body2">{m.productoNombre}</Typography>
                     <Typography variant="caption" color="text.secondary">{m.productoSku}</Typography>
                   </TableCell>
-                  <TableCell>
-                    <Chip label={m.tipoMovimiento} color={getTipoColor(m.tipoMovimiento)} size="small" />
-                  </TableCell>
+                  <TableCell><Chip label={m.tipoMovimiento} color={getTipoColor(m.tipoMovimiento)} size="small" /></TableCell>
                   <TableCell align="right">{m.cantidad}</TableCell>
                   <TableCell align="right">{m.cantidadAnterior}</TableCell>
                   <TableCell align="right">{m.cantidadNueva}</TableCell>

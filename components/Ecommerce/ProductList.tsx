@@ -11,18 +11,15 @@ interface ProductListProps {
 const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart }) => {
   if (products.length === 0) {
     return (
-      <Box sx={{ textAlign: 'center', py: 8 }}>
-        <Typography variant="h6" color="text.secondary">
-          No se encontraron productos
-        </Typography>
+      <Box sx={{ textAlign: 'center', py: { xs: 4, md: 8 } }}>
+        <Typography variant="h6" color="text.secondary">No se encontraron productos</Typography>
       </Box>
     );
   }
-
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
       {products.map((product) => (
-        <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+        <Grid key={product.id} size={{ xs: 6, sm: 6, md: 4, lg: 3, xl: 2 }}>
           <ProductCard product={product} onAddToCart={onAddToCart} />
         </Grid>
       ))}

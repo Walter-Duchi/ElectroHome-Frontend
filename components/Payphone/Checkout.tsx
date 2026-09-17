@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
-  Typography,
-  Box,
-  Paper,
-  Divider,
-  CircularProgress,
-  Alert,
-  Button,
-  Grid,
-  Snackbar,
+  Container, Typography, Box, Paper, Divider, CircularProgress, Alert,
+  Button, Grid, Snackbar,
 } from '@mui/material';
 import { cartService } from '../../services/cartService';
 import type { CartItem } from '../../src/types/ecommerce';
@@ -17,37 +9,22 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 interface PayphoneInitData {
-  clientTransactionId: string;
-  amount: number;
-  amountWithoutTax: number;
-  amountWithTax: number;
-  tax: number;
-  token: string;
-  storeId: string;
-  reference: string;
-  currency: string;
-  urlResponse: string;
+  clientTransactionId: string; amount: number; amountWithoutTax: number;
+  amountWithTax: number; tax: number; token: string; storeId: string;
+  reference: string; currency: string; urlResponse: string;
 }
 
-declare global {
-  interface Window {
-    PPaymentButtonBox: any;
-  }
-}
+declare global { interface Window { PPaymentButtonBox: any; } }
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [initData, setInitData] = useState<PayphoneInitData | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
 
-  useEffect(() => {
-    loadCart();
-  }, []);
+  useEffect(() => { loadCart(); }, []);
 
   useEffect(() => {
     if (initData) {
@@ -65,70 +42,36 @@ const Checkout: React.FC = () => {
         script.src = 'https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js';
         document.head.appendChild(script);
         script.onload = renderPayphoneBox;
-      } else {
-        renderPayphoneBox();
-      }
+      } else { renderPayphoneBox(); }
     }
   }, [initData]);
 
   const loadCart = async () => {
     try {
       const items = await cartService.getCart();
-      if (items.length === 0) {
-        navigate('/cart');
-        return;
-      }
+      if (items.length === 0) { navigate('/cart'); return; }
       setCartItems(items);
-      await initializePayphone();
-    } catch (err) {
-      setSnackbarMessage('Error al cargar el carrito');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const initializePayphone = async () => {
-    try {
-      const response = await api.post('/payphone/init');
-      setInitData(response.data);
+      const r = await api.post('/payphone/init');
+      setInitData(r.data);
     } catch (err: any) {
-      setSnackbarMessage(err.response?.data?.error || 'Error al inicializar pago');
-      setSnackbarSeverity('error');
+      setSnackbarMessage(err.response?.data?.error || 'Error al cargar carrito');
       setSnackbarOpen(true);
-    }
+    } finally { setLoading(false); }
   };
 
   const renderPayphoneBox = () => {
     if (!window.PPaymentButtonBox || !initData) return;
-
     const container = document.getElementById('pp-button');
     if (container) container.innerHTML = '';
-
     const ppb = new window.PPaymentButtonBox({
-      token: initData.token,
-      clientTransactionId: initData.clientTransactionId,
-      amount: initData.amount,
-      amountWithoutTax: initData.amountWithoutTax,
-      amountWithTax: initData.amountWithTax,
-      tax: initData.tax,
-      currency: initData.currency,
-      storeId: initData.storeId,
-      reference: initData.reference,
-      urlResponse: initData.urlResponse,
-      lang: 'es',
-      defaultMethod: 'card',
+      token: initData.token, clientTransactionId: initData.clientTransactionId,
+      amount: initData.amount, amountWithoutTax: initData.amountWithoutTax,
+      amountWithTax: initData.amountWithTax, tax: initData.tax,
+      currency: initData.currency, storeId: initData.storeId,
+      reference: initData.reference, urlResponse: initData.urlResponse,
+      lang: 'es', defaultMethod: 'card',
     });
     ppb.render('pp-button');
-  };
-
-  const handleGoBack = () => {
-    navigate('/cart');
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
   };
 
   if (loading) {
@@ -143,20 +86,16 @@ const Checkout: React.FC = () => {
   const total = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Finalizar compra
-      </Typography>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+      <Typography variant="h4" gutterBottom>Finalizar compra</Typography>
       <Divider sx={{ mb: 3 }} />
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Resumen de tu pedido
-            </Typography>
+          <Paper sx={{ p: { xs: 2, md: 3 } }}>
+            <Typography variant="h6" gutterBottom>Resumen de tu pedido</Typography>
             {cartItems.map((item) => (
-              <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography>
+              <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, gap: 1 }}>
+                <Typography sx={{ wordBreak: 'break-word' }}>
                   {item.nombreProducto} x {item.cantidad}
                 </Typography>
                 <Typography>${item.subtotal.toFixed(2)}</Typography>
@@ -170,37 +109,21 @@ const Checkout: React.FC = () => {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 5 }}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Método de pago
-            </Typography>
+          <Paper sx={{ p: { xs: 2, md: 3 } }}>
+            <Typography variant="h6" gutterBottom>Método de pago</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Paga de forma segura con Payphone (tarjeta de crédito/débito o saldo Payphone)
+              Paga con Payphone (tarjeta o saldo Payphone)
             </Typography>
-            {initData ? (
-              <div id="pp-button" style={{ minHeight: '200px' }} />
-            ) : (
-              <CircularProgress size={24} />
-            )}
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{ mt: 2 }}
-              onClick={handleGoBack}
-            >
+            {initData ? <div id="pp-button" style={{ minHeight: '200px', width: '100%' }} /> : <CircularProgress size={24} />}
+            <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={() => navigate('/cart')}>
               Cancelar y volver al carrito
             </Button>
           </Paper>
         </Grid>
       </Grid>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={7000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+      <Snackbar open={snackbarOpen} autoHideDuration={7000} onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert onClose={() => setSnackbarOpen(false)} severity="error" sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

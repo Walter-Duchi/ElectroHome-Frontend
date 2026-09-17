@@ -18,7 +18,7 @@ const Navbar: React.FC = () => {
   const loadAllowedRoles = async () => {
     try {
       setLoading(true);
-      const roles = await userService.getAllowedRoles();
+      const roles = await userService.getAdminAllowedRoles();
       setAllowedRoles(roles);
     } catch (error) {
       console.error('Error loading allowed roles:', error);
@@ -32,7 +32,7 @@ const Navbar: React.FC = () => {
   };
 
   const canCreateUsers = () => {
-    return userRole && userRole !== 'Cliente' && allowedRoles.length > 0;
+    return Boolean(userRole) && userRole !== 'Cliente' && allowedRoles.length > 0;
   };
 
   if (!auth.isAuthenticated) {
@@ -68,11 +68,7 @@ const Navbar: React.FC = () => {
       </nav>
 
       {showCreateModal && (
-        <CreateUserModal
-          allowedRoles={allowedRoles}
-          onClose={() => setShowCreateModal(false)}
-          currentUserRole={userRole || ''}
-        />
+        <CreateUserModal onClose={() => setShowCreateModal(false)} />
       )}
     </>
   );

@@ -20,95 +20,67 @@ const PayphoneResponse: React.FC = () => {
   useEffect(() => {
     const id = searchParams.get('id');
     const clientTxId = searchParams.get('clientTransactionId');
-
     if (!id || !clientTxId) {
-      setStatus('error');
-      setMessage('Parámetros de respuesta inválidos');
-      setSnackbarMessage('Parámetros de respuesta inválidos');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      setStatus('error'); setMessage('Parámetros inválidos');
+      setSnackbarMessage('Parámetros inválidos'); setSnackbarSeverity('error'); setSnackbarOpen(true);
       return;
     }
-
-    const confirmPayment = async () => {
+    (async () => {
       try {
         const response = await api.post('/payphone/confirm', { id: Number(id), clientTransactionId: clientTxId });
         setStatus('success');
-        setMessage('¡Pago exitoso! Tu compra ha sido procesada.');
+        setMessage('¡Pago exitoso!');
         refreshCart();
-
         if (response.data.ventaId) {
           setVentaId(response.data.ventaId);
-          try {
-            await api.get(`/factura/html/${response.data.ventaId}`, { responseType: 'text' });
-          } catch (err) {
+          try { await api.get(`/factura/html/${response.data.ventaId}`, { responseType: 'text' }); }
+          catch {
             setFacturaError(true);
-            setMessage('El pago fue exitoso pero hubo un error al generar la factura. Contacta al administrador.');
-            setSnackbarMessage('El pago fue exitoso pero hubo un error al generar la factura. Contacta al administrador.');
-            setSnackbarSeverity('warning');
-            setSnackbarOpen(true);
+            setMessage('Pago exitoso pero error al generar factura.');
+            setSnackbarMessage('Pago exitoso pero error al generar factura.');
+            setSnackbarSeverity('warning'); setSnackbarOpen(true);
           }
         }
       } catch (err: any) {
         setStatus('error');
-        setMessage(err.response?.data?.error || 'Error al confirmar el pago');
-        setSnackbarMessage(err.response?.data?.error || 'Error al confirmar el pago');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        setMessage(err.response?.data?.error || 'Error al confirmar pago');
+        setSnackbarMessage(err.response?.data?.error || 'Error al confirmar pago');
+        setSnackbarSeverity('error'); setSnackbarOpen(true);
       }
-    };
-
-    confirmPayment();
+    })();
   }, [searchParams]);
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
-
   return (
-    <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+    <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 }, px: { xs: 1.5, sm: 2 }, textAlign: 'center' }}>
       {status === 'loading' && (
         <Box>
           <CircularProgress size={60} sx={{ mb: 2 }} />
-          <Typography>Confirmando tu pago, por favor espera...</Typography>
+          <Typography>Confirmando tu pago...</Typography>
         </Box>
       )}
       {status === 'success' && ventaId && !facturaError && (
         <Box>
           <Alert severity="success" sx={{ mb: 3 }}>{message}</Alert>
           <FacturaView ventaId={ventaId} />
-          <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 2 }}>
-            Volver a la tienda
-          </Button>
+          <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 2 }}>Volver a la tienda</Button>
         </Box>
       )}
       {status === 'success' && facturaError && (
         <Box>
           <Alert severity="warning" sx={{ mb: 3 }}>{message}</Alert>
-          <Button variant="contained" onClick={() => window.location.reload()} sx={{ mr: 2 }}>
-            Reintentar
-          </Button>
-          <Button variant="outlined" onClick={() => navigate('/')}>
-            Ir a la tienda
-          </Button>
+          <Button variant="contained" onClick={() => window.location.reload()} sx={{ mr: 2, mb: { xs: 2, sm: 0 } }}>Reintentar</Button>
+          <Button variant="outlined" onClick={() => navigate('/')}>Ir a la tienda</Button>
         </Box>
       )}
       {status === 'error' && (
         <Box>
           <Alert severity="error" sx={{ mb: 3 }}>{message}</Alert>
-          <Button variant="contained" onClick={() => navigate('/cart')}>
-            Volver al carrito
-          </Button>
+          <Button variant="contained" onClick={() => navigate('/cart')}>Volver al carrito</Button>
         </Box>
       )}
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={7000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+      <Snackbar open={snackbarOpen} autoHideDuration={7000} onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
