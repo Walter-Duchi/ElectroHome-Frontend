@@ -3,9 +3,9 @@ import { GlobalStyles as MuiGlobalStyles } from '@mui/material';
 export const GlobalStyles = () => (
   <MuiGlobalStyles
     styles={{
-      'html, body, #root': { height: '100%', width: '100%', maxWidth: '100vw' },
-      html: { overflowX: 'hidden' },
-      body: { overflowX: 'hidden' },
+      'html, body, #root': { width: '100%', maxWidth: '100vw' },
+      '#root': { minHeight: '100vh', display: 'flex', flexDirection: 'column' },
+      body: { overflowX: 'clip' },
       'input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button': {
         WebkitAppearance: 'none', margin: 0,
       },

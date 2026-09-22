@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AppBar, Box, CssBaseline, IconButton, Toolbar, Typography, Menu, MenuItem,
+  AppBar, Box, IconButton, Toolbar, Typography, Menu, MenuItem,
   ListItemIcon, ListItemText, Divider, Button, Tooltip, Drawer, List, ListItem,
   ListItemButton, Stack,
 } from '@mui/material';
@@ -127,8 +127,7 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
-      <CssBaseline />
+    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', overflowX: 'clip' }}>
       <AppBar position="fixed">
         <Toolbar sx={{ gap: { xs: 0.5, md: 2 } }}>
           {esMovil && (
@@ -211,9 +210,9 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       </Menu>
 
       <Box component="main" sx={{
-        flexGrow: 1, p: { xs: 1.5, sm: 2, md: 3 }, mt: { xs: 7, sm: 8 },
+        flexGrow: 1, p: { xs: 1.5, sm: 2, md: 3 }, pt: { xs: 7, sm: 8 },
         backgroundColor: 'background.default', minHeight: '100vh',
-        width: '100%', maxWidth: '100%', overflowX: 'hidden',
+        width: '100%', maxWidth: '100%', overflowX: 'clip',
       }}>
         {children}
       </Box>

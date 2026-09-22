@@ -80,7 +80,7 @@ const getComponents = (palette: typeof corporateColorsLight | typeof corporateCo
       '*, *::before, *::after': { boxSizing: 'inherit', margin: 0, padding: 0 },
       body: {
         margin: 0, fontFamily: corporateTypography.fontFamily, fontSize: '14px',
-        lineHeight: '1.6', overflowX: 'hidden',
+        lineHeight: '1.6', overflowX: 'clip',
         transition: 'background-color 0.3s ease, color 0.3s ease',
         backgroundColor: palette.background.default,
         color: palette.text.primary,
