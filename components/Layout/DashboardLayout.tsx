@@ -128,7 +128,10 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', overflowX: 'clip' }}>
-      <AppBar position="fixed">
+      <AppBar
+        position="fixed"
+        sx={{ top: 0, left: 0, right: 0, zIndex: (t) => t.zIndex.drawer + 1 }}
+      >
         <Toolbar sx={{ gap: { xs: 0.5, md: 2 } }}>
           {esMovil && (
             <IconButton color="inherit" edge="start" onClick={() => setDrawerAbierto(true)} sx={{ mr: 0.5 }}>
@@ -210,9 +213,15 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       </Menu>
 
       <Box component="main" sx={{
-        flexGrow: 1, p: { xs: 1.5, sm: 2, md: 3 }, pt: { xs: 7, sm: 8 },
-        backgroundColor: 'background.default', minHeight: '100vh',
-        width: '100%', maxWidth: '100%', overflowX: 'clip',
+        flexGrow: 1,
+        px: { xs: 1.5, sm: 2, md: 3 },
+        pb: { xs: 1.5, sm: 2, md: 3 },
+        pt: { xs: 9, sm: 10, md: 11 },
+        backgroundColor: 'background.default',
+        minHeight: '100vh',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'clip',
       }}>
         {children}
       </Box>

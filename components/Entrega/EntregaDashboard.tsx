@@ -115,22 +115,86 @@ const EntregaDashboard: React.FC = () => {
     } finally { setAsignandoAutomatico(false); }
   };
 
+  const construirUrlPdf = (rutaPdf: string): string => {
+    if (!rutaPdf) return '';
+    if (rutaPdf.startsWith('http://') || rutaPdf.startsWith('https://') || rutaPdf.startsWith('blob:') || rutaPdf.startsWith('data:')) {
+      return rutaPdf;
+    }
+    return `${BACKEND_BASE_URL}${rutaPdf.startsWith('/') ? '' : '/'}${rutaPdf}`;
+  };
+
+  const descargarPdfComoArchivo = async (url: string, nombreArchivo: string): Promise<boolean> => {
+    try {
+      const respuesta = await fetch(url, { method: 'GET', mode: 'cors' });
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP ${respuesta.status}`);
+      }
+      const blob = await respuesta.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = blobUrl;
+      enlace.download = nombreArchivo;
+      enlace.rel = 'noopener';
+      enlace.style.display = 'none';
+      document.body.appendChild(enlace);
+      enlace.click();
+      setTimeout(() => {
+        if (enlace.parentNode) enlace.parentNode.removeChild(enlace);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 300);
+      return true;
+    } catch (errorDescarga) {
+      console.warn('Descarga directa falló, se usará fallback:', errorDescarga);
+      return false;
+    }
+  };
+
+  const descargarPdfConEnlace = (url: string, nombreArchivo: string): void => {
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    enlace.target = '_blank';
+    enlace.rel = 'noopener';
+    enlace.style.display = 'none';
+    document.body.appendChild(enlace);
+    enlace.click();
+    setTimeout(() => {
+      if (enlace.parentNode) enlace.parentNode.removeChild(enlace);
+    }, 300);
+  };
+
+  const descargarPdf = async (url: string, nombreArchivo: string): Promise<void> => {
+    const ok = await descargarPdfComoArchivo(url, nombreArchivo);
+    if (!ok) {
+      descargarPdfConEnlace(url, nombreArchivo);
+    }
+  };
+
   const handleGenerarComprobante = async () => {
     if (!reclamo) return;
     setPdfGenerating(true);
     try {
       const datos = await entregaService.generarDatosComprobante(codigoReclamo);
       const { rutaPdf } = await entregaService.generarPdfComprobante(datos);
-      const fullUrl = `${BACKEND_BASE_URL}${rutaPdf}`;
+      const fullUrl = construirUrlPdf(rutaPdf);
       setPdfUrl(fullUrl);
-      window.open(fullUrl, '_blank');
+      const nombreArchivo = `Comprobante_Entrega_${codigoReclamo}.pdf`;
+      await descargarPdf(fullUrl, nombreArchivo);
       setActiveStep(3);
-      setSnackbarMessage('Comprobante generado exitosamente.');
+      setSnackbarMessage('Comprobante generado y descargado exitosamente.');
       setSnackbarSeverity('success'); setSnackbarOpen(true);
     } catch (err: any) {
       setSnackbarMessage(err.response?.data?.detail || 'Error al generar el comprobante');
       setSnackbarSeverity('error'); setSnackbarOpen(true);
-    } finally { setPdfGenerating(false); }
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const handleDescargarNuevamente = async () => {
+    if (!pdfUrl) return;
+    const nombreArchivo = `Comprobante_Entrega_${codigoReclamo}.pdf`;
+    await descargarPdf(pdfUrl, nombreArchivo);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -353,10 +417,14 @@ const EntregaDashboard: React.FC = () => {
             </Card>
             {pdfUrl && (
               <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  Comprobante generado:
-                  <Button size="small" href={pdfUrl} target="_blank" sx={{ ml: 1 }}>Ver/Descargar PDF</Button>
+                <Typography variant="body2" component="div">
+                  El comprobante se descargó automáticamente. Si no lo encuentra, puede descargarlo nuevamente aquí.
                 </Typography>
+                <Button size="small" variant="outlined" sx={{ mt: 1 }}
+                  startIcon={<Download />}
+                  onClick={handleDescargarNuevamente}>
+                  Descargar nuevamente
+                </Button>
               </Alert>
             )}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}
@@ -366,7 +434,7 @@ const EntregaDashboard: React.FC = () => {
                 disabled={pdfGenerating}
                 startIcon={pdfGenerating ? <CircularProgress size={20} /> : <Download />}
                 fullWidth={esMovil}>
-                {pdfGenerating ? 'Generando...' : 'Generar Comprobante PDF'}
+                {pdfGenerating ? 'Generando...' : 'Generar y Descargar Comprobante PDF'}
               </Button>
             </Stack>
           </Box>

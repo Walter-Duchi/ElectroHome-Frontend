@@ -206,8 +206,13 @@ const EcommerceLayout: React.FC<EcommerceLayoutProps> = ({
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
-      <AppBar position="sticky" color="default" elevation={1}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'clip' }}>
+      <AppBar
+        position="fixed"
+        color="default"
+        elevation={1}
+        sx={{ top: 0, left: 0, right: 0, zIndex: (t) => t.zIndex.drawer + 1 }}
+      >
         <Toolbar sx={{ gap: { xs: 0.5, sm: 1 } }}>
           {esMovil && (
             <IconButton color="inherit" edge="start" onClick={() => setDrawerAbierto(true)} sx={{ mr: 0.5 }}>
@@ -308,7 +313,15 @@ const EcommerceLayout: React.FC<EcommerceLayoutProps> = ({
         {drawerContent}
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', overflowX: 'hidden' }}>
+      <Box component="main"
+        sx={{
+          flexGrow: 1,
+          px: { xs: 1.5, sm: 2, md: 3 },
+          pb: { xs: 1.5, sm: 2, md: 3 },
+          pt: { xs: 9, sm: 10, md: 11 },
+          width: '100%',
+          overflowX: 'clip',
+        }}>
         {children}
       </Box>
     </Box>

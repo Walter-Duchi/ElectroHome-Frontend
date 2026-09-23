@@ -41,7 +41,17 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-      <nav className="navbar">
+      <nav
+        className="navbar"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1100,
+          width: '100%',
+        }}
+      >
         <div className="navbar-left">
           <span className="navbar-brand">Sistema de Reclamos</span>
           <span className="user-role-badge">{auth.user?.rol}</span>
